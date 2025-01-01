@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -23,7 +26,20 @@ func main() {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<h1>Home Page</h1>\n<p>Welcome to the home page!</p>")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	tPath := filepath.Join("templates", "home.html")
+	t, err := template.ParseFiles(tPath)
+	if err != nil {
+		log.Printf("parse template: %v", err)
+		http.Error(w, "There was an error processing your request", http.StatusInternalServerError)
+		return
+	}
+	err = t.Execute(w, nil)
+	if err != nil {
+		log.Printf("execute template: %v", err)
+		http.Error(w, "There was an error processing your request", http.StatusInternalServerError)
+		return
+	}
 }
 
 func contactHandler(w http.ResponseWriter, r *http.Request) {
