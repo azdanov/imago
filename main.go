@@ -11,9 +11,14 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-var email = "contact@example.com"
+var (
+	email     = "contact@example.com"
+	templates = map[string]*template.Template{}
+)
 
 func main() {
+	loadTemplates()
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
@@ -25,33 +30,44 @@ func main() {
 	http.ListenAndServe(":3000", r)
 }
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	tPath := filepath.Join("templates", "home.html")
+func loadTemplates() {
+	templates["home"] = parseTemplate("home.html")
+	templates["contact"] = parseTemplate("contact.html")
+	templates["faq"] = parseTemplate("faq.html")
+}
+
+func parseTemplate(filename string) *template.Template {
+	tPath := filepath.Join("templates", filename)
 	t, err := template.ParseFiles(tPath)
 	if err != nil {
-		log.Printf("parse template: %v", err)
-		http.Error(w, "There was an error processing your request", http.StatusInternalServerError)
+		log.Fatalf("parse template %s: %v", filename, err)
+	}
+	return t
+}
+
+func renderTemplate(w http.ResponseWriter, tmpl string, data any) {
+	t, ok := templates[tmpl]
+	if !ok {
+		http.Error(w, "The requested template does not exist", http.StatusInternalServerError)
 		return
 	}
-	err = t.Execute(w, nil)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	err := t.Execute(w, data)
 	if err != nil {
 		log.Printf("execute template: %v", err)
 		http.Error(w, "There was an error processing your request", http.StatusInternalServerError)
-		return
 	}
 }
 
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "home", nil)
+}
+
 func contactHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<h1>Contact Page</h1>\n<p>To get in touch, please send an email to <a href=\"mailto:%s\">%s</a>.</p>", email, email)
+	renderTemplate(w, "contact", struct{ Email string }{email})
 }
 
 func faqHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, `<h1>FAQ</h1>
-	<dl>
-		<dt>What is this service?</dt>
-		<dd>This is a sample FAQ page.</dd>
-		<dt>How can I contact support?</dt>
-		<dd>You can contact support by sending an email to <a href="mailto:%s">%s</a>.</dd>
-	</dl>`, email, email)
+	renderTemplate(w, "faq", struct{ Email string }{email})
 }
