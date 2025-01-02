@@ -31,9 +31,9 @@ func main() {
 }
 
 func loadTemplates() {
-	templates["home"] = parseTemplate("home.html")
-	templates["contact"] = parseTemplate("contact.html")
-	templates["faq"] = parseTemplate("faq.html")
+	templates["home"] = parseTemplate("home.tmpl.html")
+	templates["contact"] = parseTemplate("contact.tmpl.html")
+	templates["faq"] = parseTemplate("faq.tmpl.html")
 }
 
 func parseTemplate(filename string) *template.Template {
