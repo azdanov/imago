@@ -3,9 +3,9 @@ package views
 import (
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
-	"path/filepath"
 )
 
 type Template struct {
@@ -13,11 +13,10 @@ type Template struct {
 	Data    any
 }
 
-func Parse(filename string) (*Template, error) {
-	p := filepath.Join("templates", filename+".tmpl.html")
-	t, err := template.ParseFiles(p)
+func Parse(fs fs.FS, pattern string) (*Template, error) {
+	t, err := template.ParseFS(fs, pattern)
 	if err != nil {
-		return nil, fmt.Errorf("parse template %s: %w", filename, err)
+		return nil, fmt.Errorf("parse template: %w", err)
 	}
 	return &Template{htmlTpl: t}, nil
 }
