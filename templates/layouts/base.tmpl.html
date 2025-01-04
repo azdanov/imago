@@ -5,32 +5,50 @@
       <title>{{ template "title" . }} - Imago</title>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <style>
-        body {
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 1rem;
-          font-family: ui-sans-serif, system-ui, sans-serif,
-            "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-            "Noto Color Emoji";
-        }
-      </style>
+      <script src="https://cdn.tailwindcss.com"></script>
       {{ block "styles" . }}{{ end }}
     </head>
-    <body>
-      <header>
-        <nav>
-          <a href="/">Home</a> | <a href="/faq">FAQ</a> |
-          <a href="/contact">Contact</a>
+    <body class="min-h-screen flex flex-col bg-gray-100 text-gray-900">
+      <header
+        class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg"
+      >
+        <nav class="container mx-auto flex justify-between py-6 px-4">
+          <ul class="flex space-x-6">
+            <li>
+              <a
+                href="/"
+                class="border border-transparent hover:border-b-current transition duration-100"
+                >Home</a
+              >
+            </li>
+            <li>
+              <a
+                href="/faq"
+                class="border border-transparent hover:border-b-current transition duration-100"
+                >FAQ</a
+              >
+            </li>
+            <li>
+              <a
+                href="/contact"
+                class="border border-transparent hover:border-b-current transition duration-100"
+                >Contact</a
+              >
+            </li>
+          </ul>
         </nav>
       </header>
 
-      <main>
+      <main class="container mx-auto p-8 bg-white grow">
         {{ template "main" . }}
       </main>
 
-      <footer>
-        <p>&copy; {{ currentYear }} Imago. All rights reserved.</p>
+      <footer
+        class="bg-gradient-to-r from-blue-800 to-blue-600 text-white py-8"
+      >
+        <p class="text-center text-sm opacity-90">
+          &copy; {{ currentYear }} Imago. All rights reserved.
+        </p>
       </footer>
 
       {{ block "scripts" . }}{{ end }}

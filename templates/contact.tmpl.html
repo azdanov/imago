@@ -1,11 +1,12 @@
 {{ template "base" . }}
-
 {{ define "title" }}Contact{{ end }}
 
 {{ define "main" }}
-  <h1>Contact Page</h1>
-  <p>
+  <h1 class="text-2xl font-bold mb-4">Contact Page</h1>
+  <p class="mb-4">
     To get in touch, please send an email to
-    <a href="mailto:contact@example.com">contact@example.com</a>.
+    <a href="mailto:contact@example.com" class="text-blue-600 hover:underline"
+      >contact@example.com</a
+    >.
   </p>
 {{ end }}

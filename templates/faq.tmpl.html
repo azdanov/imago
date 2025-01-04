@@ -3,8 +3,8 @@
 {{ define "title" }}FAQ{{ end }}
 
 {{ define "main" }}
-  <h1>FAQ</h1>
-  <ul>
+  <h1 class="text-2xl font-bold mb-4">FAQ</h1>
+  <ul class="list-disc pl-5">
     {{ range . }}
       {{ template "qa" . }}
     {{ end }}
@@ -12,8 +12,8 @@
 {{ end }}
 
 {{ define "qa" }}
-  <li>
-    <p style="font-weight: bold; font-size: 1.2rem">{{ .Question }}</p>
+  <li class="mb-4">
+    <p class="font-bold text-lg">{{ .Question }}</p>
     <p>{{ .Answer }}</p>
   </li>
 {{ end }}
