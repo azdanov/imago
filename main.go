@@ -26,6 +26,9 @@ func main() {
 	tmpl = views.Must(views.Parse(templates.FS, "faq.tmpl.html"))
 	r.Get("/faq", controllers.FAQ(tmpl))
 
+	tmpl = views.Must(views.Parse(templates.FS, "signup.tmpl.html"))
+	r.Get("/signup", controllers.StaticHandler(tmpl))
+
 	fmt.Println("Server is running on port :3000")
 	http.ListenAndServe(":3000", r)
 }

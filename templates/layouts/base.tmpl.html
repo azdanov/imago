@@ -1,6 +1,6 @@
 {{ define "base" }}
   <!doctype html>
-  <html lang="en">
+  <html lang="en" class="h-full">
     <head>
       <title>{{ template "title" . }} - Imago</title>
       <meta charset="UTF-8" />
@@ -8,7 +8,7 @@
       <script src="https://cdn.tailwindcss.com"></script>
       {{ block "styles" . }}{{ end }}
     </head>
-    <body class="min-h-screen flex flex-col bg-white text-gray-900">
+    <body class="h-full flex flex-col bg-white text-gray-900">
       <header
         class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg"
       >
@@ -29,10 +29,12 @@
             >
           </div>
           <div class="flex flex-1 justify-end space-x-6">
-            <a href="#" class="text-sm/6 font-semibold text-white">Sign in</a>
+            <a href="/signin" class="text-sm/6 font-semibold text-white"
+              >Sign in</a
+            >
             <a
-              href="#"
-              class="-my-1 text-sm/6 font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-1 px-2 drop-shadow rounded"
+              href="/signup"
+              class="-my-1 text-sm/6 font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-1 px-3 drop-shadow rounded"
               >Sign up</a
             >
           </div>
@@ -43,7 +45,7 @@
         {{ template "main" . }}
       </main>
 
-      <footer class="border-t border-gray-900/10 py-8">
+      <footer class="container border-t border-gray-900/10 py-8">
         <p class="text-center text-sm/6 text-gray-700">
           &copy; {{ currentYear }} Imago. All rights reserved.
         </p>
