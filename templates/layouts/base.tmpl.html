@@ -8,34 +8,34 @@
       <script src="https://cdn.tailwindcss.com"></script>
       {{ block "styles" . }}{{ end }}
     </head>
-    <body class="min-h-screen flex flex-col bg-gray-100 text-gray-900">
+    <body class="min-h-screen flex flex-col bg-white text-gray-900">
       <header
-        class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg"
+        class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg"
       >
-        <nav class="container mx-auto flex justify-between py-6 px-4">
-          <ul class="flex space-x-6">
-            <li>
-              <a
-                href="/"
-                class="border border-transparent hover:border-b-current transition duration-100"
-                >Home</a
-              >
-            </li>
-            <li>
-              <a
-                href="/faq"
-                class="border border-transparent hover:border-b-current transition duration-100"
-                >FAQ</a
-              >
-            </li>
-            <li>
-              <a
-                href="/contact"
-                class="border border-transparent hover:border-b-current transition duration-100"
-                >Contact</a
-              >
-            </li>
-          </ul>
+        <nav
+          class="mx-auto flex container items-center justify-between p-6 px-8"
+        >
+          <div class="flex flex-1">
+            <a href="/" class="-my-2 inline-flex items-center space-x-2">
+              {{ template "logo" }}
+              <span class="text-2xl">Imago</span>
+            </a>
+          </div>
+          <div class="flex gap-x-12 -ml-10">
+            <a href="/" class="text-sm/6 font-semibold text-white">Home</a>
+            <a href="/faq" class="text-sm/6 font-semibold text-white">FAQ</a>
+            <a href="/contact" class="text-sm/6 font-semibold text-white"
+              >Contact</a
+            >
+          </div>
+          <div class="flex flex-1 justify-end space-x-6">
+            <a href="#" class="text-sm/6 font-semibold text-white">Sign in</a>
+            <a
+              href="#"
+              class="-my-1 text-sm/6 font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-1 px-2 drop-shadow rounded"
+              >Sign up</a
+            >
+          </div>
         </nav>
       </header>
 
@@ -43,10 +43,8 @@
         {{ template "main" . }}
       </main>
 
-      <footer
-        class="bg-gradient-to-r from-blue-800 to-blue-600 text-white py-8"
-      >
-        <p class="text-center text-sm opacity-90">
+      <footer class="border-t border-gray-900/10 py-8">
+        <p class="text-center text-sm/6 text-gray-700">
           &copy; {{ currentYear }} Imago. All rights reserved.
         </p>
       </footer>
@@ -54,4 +52,40 @@
       {{ block "scripts" . }}{{ end }}
     </body>
   </html>
+{{ end }}
+
+{{ define "logo" }}
+  <svg class="h-12 w-12" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <g id="Image">
+      <rect
+        class="fill-yellow-500 drop-shadow"
+        height="20"
+        rx="1"
+        ry="1"
+        width="28"
+        x="2"
+        y="6"
+      />
+      <path
+        class="fill-yellow-300"
+        d="M30,16.58V25a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1v-.5l12.4-9.3a1,1,0,0,1,1.2,0l3.31,2.48,5.38-5.39a1,1,0,0,1,1.42,0Z"
+      />
+      <path
+        class="fill-yellow-700"
+        d="M19,13a1,1,0,0,1-.38-.08,1.15,1.15,0,0,1-.33-.21,1,1,0,0,1-.21-1.09.9.9,0,0,1,.54-.54.93.93,0,0,1,.57-.06.6.6,0,0,1,.19.06.76.76,0,0,1,.18.09l.15.12a1.15,1.15,0,0,1,.21.33,1,1,0,0,1-.21,1.09,1.15,1.15,0,0,1-.33.21A1,1,0,0,1,19,13Z"
+      />
+      <path
+        class="fill-yellow-700"
+        d="M29,6H19V26H29a1,1,0,0,0,1-1V7A1,1,0,0,0,29,6Z"
+      />
+      <path
+        class="fill-yellow-900"
+        d="M19.71,11.29l-.15-.12a.76.76,0,0,0-.18-.09.6.6,0,0,0-.19-.06H19v2a1,1,0,0,0,.38-.08,1.15,1.15,0,0,0,.33-.21,1,1,0,0,0,.21-1.09A1.15,1.15,0,0,0,19.71,11.29Z"
+      />
+      <path
+        class="fill-yellow-500"
+        d="M24.29,12.29,19,17.59V26H29a1,1,0,0,0,1-1V16.58l-4.29-4.29A1,1,0,0,0,24.29,12.29Z"
+      />
+    </g>
+  </svg>
 {{ end }}
