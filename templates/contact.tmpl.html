@@ -1,15 +1,11 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Contact</title>
-  </head>
-  <body>
-    <h1>Contact Page</h1>
-    <p>
-      To get in touch, please send an email to
-      <a href="mailto:{{ .Email }}">{{ .Email }}</a>.
-    </p>
-  </body>
-</html>
+{{ template "base" . }}
+
+{{ define "title" }}Contact{{ end }}
+
+{{ define "main" }}
+  <h1>Contact Page</h1>
+  <p>
+    To get in touch, please send an email to
+    <a href="mailto:contact@example.com">contact@example.com</a>.
+  </p>
+{{ end }}

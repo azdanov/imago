@@ -17,16 +17,14 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
-	tpl := views.Must(views.Parse(templates.FS, "home.tmpl.html"))
-	r.Get("/", controllers.StaticHandler(tpl))
+	tmpl := views.Must(views.Parse(templates.FS, "home.tmpl.html"))
+	r.Get("/", controllers.StaticHandler(tmpl))
 
-	tpl = views.Must(views.Parse(templates.FS, "contact.tmpl.html"))
-	tpl.Data = struct{ Email string }{Email: email}
-	r.Get("/contact", controllers.StaticHandler(tpl))
+	tmpl = views.Must(views.Parse(templates.FS, "contact.tmpl.html"))
+	r.Get("/contact", controllers.StaticHandler(tmpl))
 
-	tpl = views.Must(views.Parse(templates.FS, "faq.tmpl.html"))
-	tpl.Data = struct{ Email string }{Email: email}
-	r.Get("/faq", controllers.StaticHandler(tpl))
+	tmpl = views.Must(views.Parse(templates.FS, "faq.tmpl.html"))
+	r.Get("/faq", controllers.FAQ(tmpl))
 
 	fmt.Println("Server is running on port :3000")
 	http.ListenAndServe(":3000", r)
