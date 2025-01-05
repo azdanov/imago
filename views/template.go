@@ -14,7 +14,6 @@ type Template struct {
 }
 
 func Parse(fs fs.FS, pattern ...string) (*Template, error) {
-	pattern = append([]string{"layouts/base.tmpl.html"}, pattern...)
 	t, err := template.New(pattern[0]).Funcs(funcMap).ParseFS(fs, pattern...)
 	if err != nil {
 		return nil, fmt.Errorf("parse template: %w", err)
