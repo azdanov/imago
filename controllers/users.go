@@ -2,29 +2,36 @@ package controllers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+
+	"github.com/azdanov/imago/models"
 )
 
 type Users struct {
 	Templates struct {
 		New Template
 	}
+	UserService *models.UserService
 }
 
 func (u Users) NewSignup(w http.ResponseWriter, r *http.Request) {
 	email := r.URL.Query().Get("email")
+	errorMessage := r.URL.Query().Get("error")
 	data := struct {
 		Email string
+		Error string
 	}{
 		Email: email,
+		Error: errorMessage,
 	}
 	u.Templates.New.Execute(w, data)
 }
 
 func (u Users) HandleSignup(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		email := r.PostForm.Get("email")
-		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s", email), http.StatusSeeOther)
+		log.Printf("parse form: %v", err)
+		http.Redirect(w, r, fmt.Sprintf("/signup?error=%s", "Something went wrong"), http.StatusSeeOther)
 		return
 	}
 
@@ -36,14 +43,20 @@ func (u Users) HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if password == "" {
-		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s", email), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s&error=%s", email, "Password is required"), http.StatusSeeOther)
 		return
 	}
 	if len(password) < 8 {
-		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s", email), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s&error=%s", email, "Password must be at least 8 characters long"), http.StatusSeeOther)
 		return
 	}
 
-	fmt.Printf("Email: %s, Password: %s\n", email, password)
+	_, err := u.UserService.Create(email, password)
+	if err != nil {
+		log.Printf("create user: %v", err)
+		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s&error=%s", email, "Error creating user"), http.StatusSeeOther)
+		return
+	}
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

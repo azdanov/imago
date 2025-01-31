@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/azdanov/imago/controllers"
+	"github.com/azdanov/imago/models"
 	"github.com/azdanov/imago/templates"
 	"github.com/azdanov/imago/views"
 	"github.com/go-chi/chi/v5"
@@ -39,7 +40,9 @@ func main() {
 	tmpl = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "faq.tmpl.html"))
 	r.Get("/faq", controllers.FAQ(tmpl))
 
-	usersC := &controllers.Users{}
+	usersC := &controllers.Users{
+		UserService: &models.UserService{DB: db},
+	}
 	usersC.Templates.New = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signup.tmpl.html"))
 	r.Get("/signup", usersC.NewSignup)
 	r.Post("/signup", usersC.HandleSignup)
