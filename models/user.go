@@ -1,10 +1,17 @@
 package models
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type User struct {
 	ID           uint      `json:"id"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"password_hash"`
 	CreatedAt    time.Time `json:"created_at"`
+}
+
+type UserService struct {
+	DB *sql.DB
 }
