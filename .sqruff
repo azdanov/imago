@@ -1,0 +1,8 @@
+[sqruff]
+dialect = postgres
+rules = all
+
+[sqruff:indentation]
+indent_unit = tab
+indented_joins = True
+
