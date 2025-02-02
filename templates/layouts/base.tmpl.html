@@ -12,9 +12,11 @@
       <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
       {{ block "styles" . }}{{ end }}
     </head>
-    <body class="h-full flex flex-col bg-white text-gray-900">
+    <body
+      class="h-full flex flex-col bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+    >
       <header
-        class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg"
+        class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg dark:from-gray-900 dark:to-gray-950"
       >
         <nav
           class="mx-auto flex container items-center justify-between p-6 px-8"
@@ -45,12 +47,14 @@
         </nav>
       </header>
 
-      <main class="container mx-auto p-8 bg-white grow">
+      <main class="container mx-auto p-8 bg-white dark:bg-gray-800 grow">
         {{ template "main" . }}
       </main>
 
-      <footer class="container border-t border-gray-900/10 py-8">
-        <p class="text-center text-sm/6 text-gray-700">
+      <footer
+        class="container border-t border-gray-900/10 dark:border-gray-100/15 py-8"
+      >
+        <p class="text-center text-sm/6 text-gray-700 dark:text-gray-300">
           &copy; {{ currentYear }} Imago. All rights reserved.
         </p>
       </footer>
