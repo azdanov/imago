@@ -3,16 +3,14 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
-	ID           uint      `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"password_hash"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           uint   `json:"id"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"-"`
 }
 
 type UserService struct {
@@ -20,17 +18,39 @@ type UserService struct {
 }
 
 func (us *UserService) Create(email, password string) (*User, error) {
-	query := `INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, password_hash, created_at`
+	query := `INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id`
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("error hashing password: %w", err)
 	}
 
-	var u User
-	err = us.DB.QueryRow(query, email, hash).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt)
+	u := User{
+		Email:        email,
+		PasswordHash: string(hash),
+	}
+	err = us.DB.QueryRow(query, u.Email, u.PasswordHash).Scan(&u.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error creating user: %w", err)
+	}
+
+	return &u, nil
+}
+
+func (us *UserService) Authenticate(email, password string) (*User, error) {
+	query := `SELECT id, password_hash FROM users WHERE email = $1`
+
+	u := User{
+		Email: email,
+	}
+	err := us.DB.QueryRow(query, email).Scan(&u.ID, &u.PasswordHash)
+	if err != nil {
+		return nil, fmt.Errorf("error finding user: %w", err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
+	if err != nil {
+		return nil, fmt.Errorf("invalid password: %w", err)
 	}
 
 	return &u, nil

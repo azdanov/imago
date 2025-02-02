@@ -33,20 +33,21 @@ func main() {
 
 	tmpl := views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "home.tmpl.html"))
 	r.Get("/", controllers.StaticHandler(tmpl))
-
 	tmpl = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "contact.tmpl.html"))
 	r.Get("/contact", controllers.StaticHandler(tmpl))
-
 	tmpl = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "faq.tmpl.html"))
 	r.Get("/faq", controllers.FAQ(tmpl))
 
 	usersC := &controllers.Users{
 		UserService: &models.UserService{DB: db},
 	}
-	usersC.Templates.New = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signup.tmpl.html"))
+	usersC.Templates.SignUp = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signup.tmpl.html"))
 	r.Get("/signup", usersC.NewSignup)
 	r.Post("/signup", usersC.HandleSignup)
+	usersC.Templates.SignIn = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signin.tmpl.html"))
+	r.Get("/signin", usersC.NewSignin)
+	r.Post("/signin", usersC.HandleSignin)
 
-	fmt.Println("Server is running on port :3000")
+	fmt.Println("Server is running on http://localhost:3000")
 	http.ListenAndServe(":3000", r)
 }
