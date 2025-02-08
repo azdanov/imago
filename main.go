@@ -13,12 +13,15 @@ import (
 	"github.com/azdanov/imago/views"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/gorilla/csrf"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var email = "contact@example.com"
 
 func main() {
+	csrfSecret := os.Getenv("CSRF_SECRET")
+	isProduction := os.Getenv("ENV") == "production"
 	db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
@@ -30,6 +33,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(csrf.Protect([]byte(csrfSecret), csrf.Secure(isProduction)))
 
 	tmpl := views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "home.tmpl.html"))
 	r.Get("/", controllers.StaticHandler(tmpl))

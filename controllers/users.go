@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/azdanov/imago/models"
 )
@@ -26,13 +27,13 @@ func (u Users) NewSignup(w http.ResponseWriter, r *http.Request) {
 		Email: email,
 		Error: errorMessage,
 	}
-	u.Templates.SignUp.Execute(w, data)
+	u.Templates.SignUp.Execute(w, r, data)
 }
 
 func (u Users) HandleSignup(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Printf("parse form: %v", err)
-		http.Redirect(w, r, fmt.Sprintf("/signup?error=%s", "Something went wrong"), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("/signup?error=%s", url.QueryEscape("Something went wrong")), http.StatusSeeOther)
 		return
 	}
 
@@ -72,7 +73,7 @@ func (u Users) NewSignin(w http.ResponseWriter, r *http.Request) {
 		Email: email,
 		Error: errorMessage,
 	}
-	u.Templates.SignIn.Execute(w, data)
+	u.Templates.SignIn.Execute(w, r, data)
 }
 
 func (u Users) HandleSignin(w http.ResponseWriter, r *http.Request) {

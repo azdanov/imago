@@ -1,8 +1,8 @@
-[sqruff]
+[sqlfluff]
 dialect = postgres
 rules = all
 
-[sqruff:indentation]
+[sqlfluff:indentation]
 indent_unit = tab
 indented_joins = True
 
