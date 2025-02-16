@@ -20,8 +20,6 @@ import (
 var email = "contact@example.com"
 
 func main() {
-	csrfSecret := os.Getenv("CSRF_SECRET")
-	isProduction := os.Getenv("ENV") == "production"
 	db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
@@ -33,7 +31,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(csrf.Protect([]byte(csrfSecret), csrf.Secure(isProduction)))
+	r.Use(csrf.Protect([]byte(os.Getenv("CSRF_SECRET")), csrf.Secure(os.Getenv("ENV") == "production")))
 
 	tmpl := views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "home.tmpl.html"))
 	r.Get("/", controllers.StaticHandler(tmpl))
@@ -43,7 +41,8 @@ func main() {
 	r.Get("/faq", controllers.FAQ(tmpl))
 
 	usersC := &controllers.Users{
-		UserService: &models.UserService{DB: db},
+		UserService:    &models.UserService{DB: db},
+		SessionService: &models.SessionService{DB: db},
 	}
 	usersC.Templates.SignUp = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signup.tmpl.html"))
 	r.Get("/signup", usersC.NewSignup)
@@ -51,6 +50,9 @@ func main() {
 	usersC.Templates.SignIn = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signin.tmpl.html"))
 	r.Get("/signin", usersC.NewSignin)
 	r.Post("/signin", usersC.HandleSignin)
+	r.Post("/signout", usersC.HandleSignout)
+	usersC.Templates.Me = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "me.tmpl.html"))
+	r.Get("/users/me", usersC.CurrentUser)
 
 	fmt.Println("Server is running on http://localhost:3000")
 	http.ListenAndServe(":3000", r)

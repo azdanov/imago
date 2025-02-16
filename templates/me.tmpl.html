@@ -1,0 +1,9 @@
+{{ template "base" . }}
+
+{{ define "title" }}Sign up{{ end }}
+
+{{ define "main" }}
+  <h1 class="text-2xl font-bold mb-4">User Profile</h1>
+  <p><strong>ID:</strong> {{ .User.ID }}</p>
+  <p><strong>Email:</strong> {{ .User.Email }}</p>
+{{ end }}

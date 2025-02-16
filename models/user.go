@@ -22,7 +22,7 @@ func (us *UserService) Create(email, password string) (*User, error) {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("error hashing password: %w", err)
+		return nil, fmt.Errorf("create: %w", err)
 	}
 
 	u := User{
@@ -31,7 +31,7 @@ func (us *UserService) Create(email, password string) (*User, error) {
 	}
 	err = us.DB.QueryRow(query, u.Email, u.PasswordHash).Scan(&u.ID)
 	if err != nil {
-		return nil, fmt.Errorf("error creating user: %w", err)
+		return nil, fmt.Errorf("create: %w", err)
 	}
 
 	return &u, nil
@@ -45,12 +45,12 @@ func (us *UserService) Authenticate(email, password string) (*User, error) {
 	}
 	err := us.DB.QueryRow(query, email).Scan(&u.ID, &u.PasswordHash)
 	if err != nil {
-		return nil, fmt.Errorf("error finding user: %w", err)
+		return nil, fmt.Errorf("authenticate: %w", err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
 	if err != nil {
-		return nil, fmt.Errorf("invalid password: %w", err)
+		return nil, fmt.Errorf("authenticate: %w", err)
 	}
 
 	return &u, nil

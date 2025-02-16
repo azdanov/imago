@@ -13,8 +13,11 @@ type Users struct {
 	Templates struct {
 		SignUp Template
 		SignIn Template
+		Me     Template
 	}
-	UserService *models.UserService
+	UserService    *models.UserService
+	SessionService *models.SessionService
+	SessionCookie  SessionCookie
 }
 
 func (u Users) NewSignup(w http.ResponseWriter, r *http.Request) {
@@ -53,14 +56,22 @@ func (u Users) HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := u.UserService.Create(email, password)
+	user, err := u.UserService.Create(email, password)
 	if err != nil {
 		log.Printf("create user: %v", err)
 		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s&error=%s", email, "Error creating user"), http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	session, err := u.SessionService.Create(user.ID)
+	if err != nil {
+		log.Printf("create session: %v", err)
+		http.Redirect(w, r, fmt.Sprintf("/signin?email=%s&error=%s", email, "Error creating session"), http.StatusSeeOther)
+		return
+	}
+
+	u.SessionCookie.Set(w, session.Token)
+	http.Redirect(w, r, "/users/me", http.StatusSeeOther)
 }
 
 func (u Users) NewSignin(w http.ResponseWriter, r *http.Request) {
@@ -95,12 +106,62 @@ func (u Users) HandleSignin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := u.UserService.Authenticate(email, password)
+	user, err := u.UserService.Authenticate(email, password)
 	if err != nil {
 		log.Printf("authenticate user: %v", err)
 		http.Redirect(w, r, fmt.Sprintf("/signin?email=%s&error=%s", email, "Invalid email or password"), http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	session, err := u.SessionService.Create(user.ID)
+	if err != nil {
+		log.Printf("create session: %v", err)
+		http.Redirect(w, r, fmt.Sprintf("/signin?email=%s&error=%s", email, "Error creating session"), http.StatusSeeOther)
+		return
+	}
+
+	u.SessionCookie.Set(w, session.Token)
+	http.Redirect(w, r, "/users/me", http.StatusSeeOther)
+}
+
+func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
+	token, err := u.SessionCookie.Get(r)
+	if err != nil {
+		log.Printf("get token: %v", err)
+		http.Redirect(w, r, "/signin", http.StatusSeeOther)
+		return
+	}
+
+	user, err := u.SessionService.User(token)
+	if err != nil {
+		log.Printf("get user: %v", err)
+		http.Redirect(w, r, "/signin", http.StatusSeeOther)
+		return
+	}
+
+	data := struct {
+		User *models.User
+	}{
+		User: user,
+	}
+
+	u.Templates.Me.Execute(w, r, data)
+}
+
+func (u Users) HandleSignout(w http.ResponseWriter, r *http.Request) {
+	token, err := u.SessionCookie.Get(r)
+	if err != nil {
+		log.Printf("get token: %v", err)
+		http.Redirect(w, r, "/signin", http.StatusSeeOther)
+		return
+	}
+
+	if err := u.SessionService.Delete(token); err != nil {
+		log.Printf("delete session: %v", err)
+		http.Redirect(w, r, "/signin", http.StatusSeeOther)
+		return
+	}
+
+	u.SessionCookie.Clear(w)
+	http.Redirect(w, r, "/signin", http.StatusSeeOther)
 }

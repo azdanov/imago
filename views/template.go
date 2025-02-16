@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/azdanov/imago/controllers"
 	"github.com/gorilla/csrf"
 )
 
@@ -20,7 +21,7 @@ type Template struct {
 func Parse(fs fs.FS, pattern ...string) (*Template, error) {
 	t, err := template.New(pattern[0]).Funcs(funcMap).ParseFS(fs, pattern...)
 	if err != nil {
-		return nil, fmt.Errorf("parse template: %w", err)
+		return nil, fmt.Errorf("parse: %w", err)
 	}
 	return &Template{htmlTmpl: t}, nil
 }
@@ -40,9 +41,15 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data any) {
 		return
 	}
 
+	cookie, _ := r.Cookie(controllers.SessionName)
+	isLoggedIn := cookie != nil && cookie.Value != ""
+
 	tpl.Funcs(template.FuncMap{
 		"csrfField": func() template.HTML {
 			return csrf.TemplateField(r)
+		},
+		"loggedIn": func() bool {
+			return isLoggedIn
 		},
 	})
 
@@ -63,6 +70,9 @@ var funcMap = template.FuncMap{
 		return time.Now().Year()
 	},
 	"csrfField": func() (template.HTML, error) {
-		return template.HTML(""), fmt.Errorf("csrfField called in template without a request")
+		return template.HTML(""), fmt.Errorf("csrfField: called in template without a request")
+	},
+	"loggedIn": func() (bool, error) {
+		return false, fmt.Errorf("loggedIn: called in template without a request")
 	},
 }

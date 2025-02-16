@@ -35,15 +35,29 @@
               >Contact</a
             >
           </div>
-          <div class="flex flex-1 justify-end space-x-6">
-            <a href="/signin" class="text-sm/6 font-semibold text-white"
-              >Sign in</a
-            >
-            <a
-              href="/signup"
-              class="-my-1 text-sm/6 font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-1 px-3 drop-shadow rounded"
-              >Sign up</a
-            >
+          <div class="flex flex-1 items-center justify-end space-x-6">
+            {{ if loggedIn }}
+              <form action="/signout" method="post">
+                <div class="hidden">
+                  {{ csrfField }}
+                </div>
+                <button
+                  type="submit"
+                  class="text-sm/6 font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-1 px-3 drop-shadow rounded cursor-pointer"
+                >
+                  Sign out
+                </button>
+              </form>
+            {{ else }}
+              <a href="/signin" class="text-sm/6 font-semibold text-white"
+                >Sign in</a
+              >
+              <a
+                href="/signup"
+                class="text-sm/6 font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-1 px-3 drop-shadow rounded"
+                >Sign up</a
+              >
+            {{ end }}
           </div>
         </nav>
       </header>
