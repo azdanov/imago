@@ -1,13 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/azdanov/imago/controllers"
+	"github.com/azdanov/imago/database"
 	"github.com/azdanov/imago/models"
 	"github.com/azdanov/imago/templates"
 	"github.com/azdanov/imago/views"
@@ -20,11 +20,16 @@ import (
 var email = "contact@example.com"
 
 func main() {
-	db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
+	db, err := database.Init()
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
 	}
 	defer db.Close()
+
+	err = database.Migrate(db, database.FS, database.MigrationsDir)
+	if err != nil {
+		log.Fatalf("Unable to migrate database: %v", err)
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

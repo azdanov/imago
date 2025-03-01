@@ -25,7 +25,6 @@ go.work.sum
 .env
 
 # Air live reload
-.air.toml
 tmp/
 
 # VS Code
