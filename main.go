@@ -1,13 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/azdanov/imago/controllers"
+	"github.com/azdanov/imago/db"
 	"github.com/azdanov/imago/models"
 	"github.com/azdanov/imago/templates"
 	"github.com/azdanov/imago/views"
@@ -20,11 +20,16 @@ import (
 var email = "contact@example.com"
 
 func main() {
-	db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
+	err := db.Init()
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
 	}
 	defer db.Close()
+
+	err = db.Migrate()
+	if err != nil {
+		log.Fatalf("Unable to migrate database: %v", err)
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -41,8 +46,8 @@ func main() {
 	r.Get("/faq", controllers.FAQ(tmpl))
 
 	usersC := &controllers.Users{
-		UserService:    &models.UserService{DB: db},
-		SessionService: &models.SessionService{DB: db},
+		UserService:    &models.UserService{DB: db.DB},
+		SessionService: &models.SessionService{DB: db.DB},
 	}
 	usersC.Templates.SignUp = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signup.tmpl.html"))
 	r.Get("/signup", usersC.NewSignup)
