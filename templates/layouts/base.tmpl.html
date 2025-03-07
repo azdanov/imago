@@ -36,7 +36,7 @@
             >
           </div>
           <div class="flex flex-1 items-center justify-end space-x-6">
-            {{ if loggedIn }}
+            {{ if currentUser }}
               <form action="/signout" method="post">
                 <div class="hidden">
                   {{ csrfField }}

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/azdanov/imago/context"
 	"github.com/azdanov/imago/models"
 )
 
@@ -13,11 +14,15 @@ type Users struct {
 	Templates struct {
 		SignUp Template
 		SignIn Template
-		Me     Template
 	}
 	UserService    *models.UserService
 	SessionService *models.SessionService
-	SessionCookie  SessionCookie
+	sessionCookie  SessionCookie
+}
+
+type UserMiddleware struct {
+	SessionService *models.SessionService
+	sessionCookie  SessionCookie
 }
 
 func (u Users) NewSignup(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +75,7 @@ func (u Users) HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u.SessionCookie.Set(w, session.Token)
+	u.sessionCookie.Set(w, session.Token)
 	http.Redirect(w, r, "/users/me", http.StatusSeeOther)
 }
 
@@ -120,36 +125,12 @@ func (u Users) HandleSignin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u.SessionCookie.Set(w, session.Token)
+	u.sessionCookie.Set(w, session.Token)
 	http.Redirect(w, r, "/users/me", http.StatusSeeOther)
 }
 
-func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
-	token, err := u.SessionCookie.Get(r)
-	if err != nil {
-		log.Printf("get token: %v", err)
-		http.Redirect(w, r, "/signin", http.StatusSeeOther)
-		return
-	}
-
-	user, err := u.SessionService.User(token)
-	if err != nil {
-		log.Printf("get user: %v", err)
-		http.Redirect(w, r, "/signin", http.StatusSeeOther)
-		return
-	}
-
-	data := struct {
-		User *models.User
-	}{
-		User: user,
-	}
-
-	u.Templates.Me.Execute(w, r, data)
-}
-
 func (u Users) HandleSignout(w http.ResponseWriter, r *http.Request) {
-	token, err := u.SessionCookie.Get(r)
+	token, err := u.sessionCookie.Get(r)
 	if err != nil {
 		log.Printf("get token: %v", err)
 		http.Redirect(w, r, "/signin", http.StatusSeeOther)
@@ -162,6 +143,37 @@ func (u Users) HandleSignout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u.SessionCookie.Clear(w)
+	u.sessionCookie.Clear(w)
 	http.Redirect(w, r, "/signin", http.StatusSeeOther)
+}
+
+func (m UserMiddleware) SetUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, err := m.sessionCookie.Get(r)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		user, err := m.SessionService.User(token)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ctx := context.WithUser(r.Context(), user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (m UserMiddleware) RequireUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := context.User(r.Context())
+		if user == nil {
+			http.Redirect(w, r, "/signin", http.StatusSeeOther)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

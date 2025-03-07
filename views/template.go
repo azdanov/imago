@@ -10,7 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/azdanov/imago/controllers"
+	"github.com/azdanov/imago/context"
+	"github.com/azdanov/imago/models"
 	"github.com/gorilla/csrf"
 )
 
@@ -41,15 +42,12 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data any) {
 		return
 	}
 
-	cookie, _ := r.Cookie(controllers.SessionName)
-	isLoggedIn := cookie != nil && cookie.Value != ""
-
 	tpl.Funcs(template.FuncMap{
 		"csrfField": func() template.HTML {
 			return csrf.TemplateField(r)
 		},
-		"loggedIn": func() bool {
-			return isLoggedIn
+		"currentUser": func() *models.User {
+			return context.User(r.Context())
 		},
 	})
 
@@ -72,7 +70,7 @@ var funcMap = template.FuncMap{
 	"csrfField": func() (template.HTML, error) {
 		return template.HTML(""), fmt.Errorf("csrfField: called in template without a request")
 	},
-	"loggedIn": func() (bool, error) {
-		return false, fmt.Errorf("loggedIn: called in template without a request")
+	"currentUser": func() (*models.User, error) {
+		return nil, fmt.Errorf("currentUser: called in template without a request")
 	},
 }
