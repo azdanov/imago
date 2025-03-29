@@ -14,8 +14,25 @@ services:
       - app-network
     restart: unless-stopped
 
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    ports:
+      - 8025:8025
+      - 1025:1025
+    volumes:
+      - mailpit_data:/data
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
+  mailpit_data:
 
 networks:
   app-network:

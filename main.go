@@ -17,8 +17,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var email = "contact@example.com"
-
 func main() {
 	// Setup database
 	db, err := database.Init()
