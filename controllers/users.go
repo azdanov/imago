@@ -17,12 +17,27 @@ type Users struct {
 	}
 	UserService    *models.UserService
 	SessionService *models.SessionService
-	sessionCookie  SessionCookie
+	SessionCookie  *SessionCookie
+}
+
+func NewUsers(us *models.UserService, ss *models.SessionService, sc *SessionCookie) *Users {
+	return &Users{
+		UserService:    us,
+		SessionService: ss,
+		SessionCookie:  sc,
+	}
 }
 
 type UserMiddleware struct {
 	SessionService *models.SessionService
-	sessionCookie  SessionCookie
+	SessionCookie  *SessionCookie
+}
+
+func NewUserMiddleware(ss *models.SessionService, sc *SessionCookie) *UserMiddleware {
+	return &UserMiddleware{
+		SessionService: ss,
+		SessionCookie:  sc,
+	}
 }
 
 func (u Users) NewSignup(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +90,7 @@ func (u Users) HandleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u.sessionCookie.Set(w, session.Token)
+	u.SessionCookie.Set(w, session.Token)
 	http.Redirect(w, r, "/users/me", http.StatusSeeOther)
 }
 
@@ -125,12 +140,12 @@ func (u Users) HandleSignin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u.sessionCookie.Set(w, session.Token)
+	u.SessionCookie.Set(w, session.Token)
 	http.Redirect(w, r, "/users/me", http.StatusSeeOther)
 }
 
 func (u Users) HandleSignout(w http.ResponseWriter, r *http.Request) {
-	token, err := u.sessionCookie.Get(r)
+	token, err := u.SessionCookie.Get(r)
 	if err != nil {
 		log.Printf("get token: %v", err)
 		http.Redirect(w, r, "/signin", http.StatusSeeOther)
@@ -143,13 +158,13 @@ func (u Users) HandleSignout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u.sessionCookie.Clear(w)
+	u.SessionCookie.Clear(w)
 	http.Redirect(w, r, "/signin", http.StatusSeeOther)
 }
 
 func (m UserMiddleware) SetUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, err := m.sessionCookie.Get(r)
+		token, err := m.SessionCookie.Get(r)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return

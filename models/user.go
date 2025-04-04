@@ -17,6 +17,12 @@ type UserService struct {
 	DB *sql.DB
 }
 
+func NewUserService(db *sql.DB) *UserService {
+	return &UserService{
+		DB: db,
+	}
+}
+
 func (us *UserService) Create(email, password string) (*User, error) {
 	query := `INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id`
 

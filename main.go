@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 
+	"github.com/azdanov/imago/config"
 	"github.com/azdanov/imago/controllers"
 	"github.com/azdanov/imago/database"
 	"github.com/azdanov/imago/models"
@@ -18,8 +17,11 @@ import (
 )
 
 func main() {
+	// Load environment variables
+	config := config.NewEnvConfig()
+
 	// Setup database
-	db, err := database.Init()
+	db, err := database.NewDB(config)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
 	}
@@ -31,23 +33,22 @@ func main() {
 	}
 
 	// Setup services
-	ss := &models.SessionService{DB: db}
-	us := &models.UserService{DB: db}
+	ss := models.NewSessionService(db, models.MinSessionTokenBytes)
+	us := models.NewUserService(db)
+	sc := controllers.NewSessionCookie(config.Server.SSLMode)
 
-	// Setup middleware
-	um := &controllers.UserMiddleware{
-		SessionService: ss,
-	}
-
+	// Setup router
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(csrf.Protect([]byte(os.Getenv("CSRF_SECRET")), csrf.Secure(os.Getenv("ENV") == "production")))
+	r.Use(csrf.Protect([]byte(config.CSRF.Key), csrf.Secure(config.CSRF.Secure)))
+
+	um := controllers.NewUserMiddleware(ss, sc)
 	r.Use(um.SetUser)
 
-	// Setup templates
+	// Setup routes
 	tmpl := views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "home.tmpl.html"))
 	r.Get("/", controllers.StaticHandler(tmpl))
 
@@ -57,11 +58,7 @@ func main() {
 	tmpl = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "faq.tmpl.html"))
 	r.Get("/faq", controllers.FAQ(tmpl))
 
-	// Setup controllers
-	usersC := &controllers.Users{
-		UserService:    us,
-		SessionService: ss,
-	}
+	usersC := controllers.NewUsers(us, ss, sc)
 
 	usersC.Templates.SignUp = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signup.tmpl.html"))
 	r.Get("/signup", usersC.NewSignup)
@@ -79,6 +76,7 @@ func main() {
 	})
 
 	// Start server
-	fmt.Println("Server is running on http://localhost:3000")
-	http.ListenAndServe(":3000", r)
+	addr := config.Server.GetAddr()
+	log.Printf("Starting server on %s\n", addr)
+	http.ListenAndServe(addr, r)
 }

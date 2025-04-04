@@ -3,10 +3,17 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"os"
 )
 
-type SessionCookie struct{}
+type SessionCookie struct {
+	Secure bool
+}
+
+func NewSessionCookie(secure bool) *SessionCookie {
+	return &SessionCookie{
+		Secure: secure,
+	}
+}
 
 const SessionName = "session"
 
@@ -16,7 +23,7 @@ func (c SessionCookie) new(value string) http.Cookie {
 		Value:    value,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   os.Getenv("ENV") == "production",
+		Secure:   c.Secure,
 	}
 	return cookie
 }

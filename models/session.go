@@ -27,11 +27,15 @@ type SessionService struct {
 	SessionTokenBytes int
 }
 
-func (s *SessionService) Create(userID uint) (*Session, error) {
-	bytesPerToken := s.SessionTokenBytes
-	if bytesPerToken < MinSessionTokenBytes {
-		bytesPerToken = MinSessionTokenBytes
+func NewSessionService(db *sql.DB, minSessionTokenBytes int) *SessionService {
+	return &SessionService{
+		DB:                db,
+		SessionTokenBytes: minSessionTokenBytes,
 	}
+}
+
+func (s *SessionService) Create(userID uint) (*Session, error) {
+	bytesPerToken := max(s.SessionTokenBytes, MinSessionTokenBytes)
 	token, err := rand.String(bytesPerToken)
 	if err != nil {
 		return nil, fmt.Errorf("create: %w", err)

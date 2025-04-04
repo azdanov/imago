@@ -2,9 +2,8 @@ package models
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 
+	"github.com/azdanov/imago/config"
 	"github.com/wneessen/go-mail"
 )
 
@@ -29,28 +28,22 @@ type EmailService struct {
 	client *mail.Client
 }
 
-func NewEmailService() (*EmailService, error) {
-	port, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
-	if err != nil {
-		return nil, fmt.Errorf("email: %w", err)
-	}
-
+func NewEmailService(config config.Config) (*EmailService, error) {
 	options := []mail.Option{
-		mail.WithPort(port),
-		mail.WithUsername(os.Getenv("SMTP_USERNAME")),
-		mail.WithPassword(os.Getenv("SMTP_PASSWORD")),
+		mail.WithPort(config.SMTP.Port),
+		mail.WithUsername(config.SMTP.Username),
+		mail.WithPassword(config.SMTP.Password),
 	}
 
-	switch os.Getenv("ENV") {
-	case "development":
-		options = append(options, mail.WithTLSPortPolicy(mail.NoTLS))
-		options = append(options, mail.WithSMTPAuth(mail.SMTPAuthPlain))
-	default:
+	if config.SMTP.SSLMode {
 		options = append(options, mail.WithTLSPortPolicy(mail.TLSMandatory))
 		options = append(options, mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover))
+	} else {
+		options = append(options, mail.WithTLSPortPolicy(mail.NoTLS))
+		options = append(options, mail.WithSMTPAuth(mail.SMTPAuthPlain))
 	}
 
-	client, err := mail.NewClient(os.Getenv("SMTP_SERVER"), options...)
+	client, err := mail.NewClient(config.SMTP.Host, options...)
 	if err != nil {
 		return nil, fmt.Errorf("email: %w", err)
 	}
