@@ -50,6 +50,10 @@ type ServerConfig struct {
 
 // Returns the address for the server, including protocol based on SSL mode
 func (c *ServerConfig) GetAddr() string {
+	return c.Host + ":" + strconv.Itoa(c.Port)
+}
+
+func (c *ServerConfig) GetURL() string {
 	addr := c.Host + ":" + strconv.Itoa(c.Port)
 	if c.SSLMode {
 		return "https://" + addr

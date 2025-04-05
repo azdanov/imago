@@ -86,7 +86,7 @@ func (e *EmailService) Send(email Email) error {
 	return nil
 }
 
-func (e *EmailService) SendForgottenPassword(to string, resetURL string) error {
+func (e *EmailService) SendResetPassword(to string, resetURL string) error {
 	email := Email{
 		To:        to,
 		Subject:   "Imago - Reset password",

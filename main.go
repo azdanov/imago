@@ -36,6 +36,11 @@ func main() {
 	ss := models.NewSessionService(db, models.MinSessionTokenBytes)
 	us := models.NewUserService(db)
 	sc := controllers.NewSessionCookie(config.Server.SSLMode)
+	ps := models.NewPasswordResetService(db, models.MinSessionTokenBytes, models.DefaultTokenLifetime)
+	es, err := models.NewEmailService(config)
+	if err != nil {
+		log.Fatalf("Unable to create email service: %v", err)
+	}
 
 	// Setup router
 	r := chi.NewRouter()
@@ -58,7 +63,7 @@ func main() {
 	tmpl = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "faq.tmpl.html"))
 	r.Get("/faq", controllers.FAQ(tmpl))
 
-	usersC := controllers.NewUsers(us, ss, sc)
+	usersC := controllers.NewUsers(us, ss, sc, ps, es, &config)
 
 	usersC.Templates.SignUp = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signup.tmpl.html"))
 	r.Get("/signup", usersC.NewSignup)
@@ -69,6 +74,14 @@ func main() {
 	r.Post("/signin", usersC.HandleSignin)
 	r.Post("/signout", usersC.HandleSignout)
 
+	usersC.Templates.ForgotPassword = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "forgot_password.tmpl.html"))
+	r.Get("/forgot-password", usersC.NewForgotPassword)
+	r.Post("/forgot-password", usersC.HandleForgotPassword)
+
+	usersC.Templates.ResetPassword = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "reset_password.tmpl.html"))
+	r.Get("/reset-password", usersC.NewResetPassword)
+	r.Post("/reset-password", usersC.HandleResetPassword)
+
 	tmpl = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "me.tmpl.html"))
 	r.Route("/users/me", func(r chi.Router) {
 		r.Use(um.RequireUser)
@@ -76,7 +89,6 @@ func main() {
 	})
 
 	// Start server
-	addr := config.Server.GetAddr()
-	log.Printf("Starting server on %s\n", addr)
-	http.ListenAndServe(addr, r)
+	log.Printf("Starting server on %s\n", config.Server.GetURL())
+	http.ListenAndServe(config.Server.GetAddr(), r)
 }

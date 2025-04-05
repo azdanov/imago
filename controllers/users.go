@@ -6,25 +6,43 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/azdanov/imago/config"
 	"github.com/azdanov/imago/context"
 	"github.com/azdanov/imago/models"
 )
 
 type Users struct {
 	Templates struct {
-		SignUp Template
-		SignIn Template
+		SignUp         Template
+		SignIn         Template
+		ForgotPassword Template
+		ResetPassword  Template
 	}
-	UserService    *models.UserService
-	SessionService *models.SessionService
-	SessionCookie  *SessionCookie
+
+	UserService          *models.UserService
+	SessionService       *models.SessionService
+	PasswordResetService *models.PasswordResetService
+	EmailService         *models.EmailService
+
+	SessionCookie *SessionCookie
+	serverURL     string
 }
 
-func NewUsers(us *models.UserService, ss *models.SessionService, sc *SessionCookie) *Users {
+func NewUsers(
+	us *models.UserService,
+	ss *models.SessionService,
+	sc *SessionCookie,
+	ps *models.PasswordResetService,
+	es *models.EmailService,
+	cn *config.Config,
+) *Users {
 	return &Users{
-		UserService:    us,
-		SessionService: ss,
-		SessionCookie:  sc,
+		UserService:          us,
+		SessionService:       ss,
+		SessionCookie:        sc,
+		PasswordResetService: ps,
+		EmailService:         es,
+		serverURL:            cn.Server.GetURL(),
 	}
 }
 
@@ -160,6 +178,119 @@ func (u Users) HandleSignout(w http.ResponseWriter, r *http.Request) {
 
 	u.SessionCookie.Clear(w)
 	http.Redirect(w, r, "/signin", http.StatusSeeOther)
+}
+
+func (u Users) NewForgotPassword(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Email   string
+		Error   string
+		Success string
+	}{
+		Email:   r.FormValue("email"),
+		Error:   r.URL.Query().Get("error"),
+		Success: r.URL.Query().Get("success"),
+	}
+
+	u.Templates.ForgotPassword.Execute(w, r, data)
+}
+
+func (u Users) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Email string
+	}
+	data.Email = r.FormValue("email")
+
+	var vals url.Values
+
+	passwordReset, err := u.PasswordResetService.Generate(data.Email)
+	if err != nil {
+		log.Printf("generate password reset: %v", err)
+		vals = url.Values{
+			"email": {data.Email},
+			"error": {"Something went wrong"},
+		}
+		http.Redirect(w, r, "/forgot-password?"+vals.Encode(), http.StatusSeeOther)
+		return
+	}
+
+	vals = url.Values{
+		"token": {passwordReset.Token},
+	}
+	resetURL := u.serverURL + "?" + vals.Encode()
+
+	err = u.EmailService.SendResetPassword(data.Email, resetURL)
+	if err != nil {
+		log.Printf("send email: %v", err)
+		vals = url.Values{
+			"email": {data.Email},
+			"error": {"Something went wrong"},
+		}
+		http.Redirect(w, r, "/forgot-password?"+vals.Encode(), http.StatusSeeOther)
+		return
+	}
+
+	vals = url.Values{
+		"email":   {data.Email},
+		"success": {"true"},
+	}
+
+	http.Redirect(w, r, "/forgot-password?"+vals.Encode(), http.StatusSeeOther)
+}
+
+func (u Users) NewResetPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Token string
+		Error string
+	}
+	data.Token = r.FormValue("token")
+	data.Error = r.URL.Query().Get("error")
+
+	u.Templates.ResetPassword.Execute(w, r, data)
+}
+
+func (u Users) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Token    string
+		Password string
+	}
+	data.Token = r.FormValue("token")
+	data.Password = r.FormValue("password")
+
+	user, err := u.PasswordResetService.GetUserByToken(data.Token)
+	if err != nil {
+		log.Printf("get user by token: %v", err)
+		vals := url.Values{
+			"error": {"Invalid or expired token"},
+			"token": {data.Token},
+		}
+		http.Redirect(w, r, "/reset-password?"+vals.Encode(), http.StatusSeeOther)
+		return
+	}
+
+	if err = u.UserService.UpdatePassword(user.ID, data.Password); err != nil {
+		log.Printf("update password: %v", err)
+		vals := url.Values{
+			"error": {"Internal server error"},
+			"token": {data.Token},
+		}
+		http.Redirect(w, r, "/reset-password?"+vals.Encode(), http.StatusSeeOther)
+		return
+	}
+
+	session, err := u.SessionService.Create(user.ID)
+	if err != nil {
+		log.Printf("create session: %v", err)
+		vals := url.Values{
+			"error": {"Error creating session. Please try again"},
+			"email": {user.Email},
+		}
+		http.Redirect(w, r, "/signin?"+vals.Encode(), http.StatusSeeOther)
+		return
+	}
+
+	u.SessionCookie.Set(w, session.Token)
+
+	http.Redirect(w, r, "/users/me", http.StatusSeeOther)
 }
 
 func (m UserMiddleware) SetUser(next http.Handler) http.Handler {
