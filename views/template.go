@@ -19,8 +19,20 @@ type Template struct {
 	htmlTmpl *template.Template
 }
 
+const baseTemplate = "layouts/base.tmpl.html"
+
+var baseTemplates = []string{
+	baseTemplate,
+	"layouts/notifications.tmpl.html",
+}
+
 func Parse(fs fs.FS, pattern ...string) (*Template, error) {
-	t, err := template.New(pattern[0]).Funcs(funcMap).ParseFS(fs, pattern...)
+	if len(pattern) == 0 {
+		return nil, fmt.Errorf("no template files provided")
+	}
+	pattern = append(pattern, baseTemplates...)
+
+	t, err := template.New(baseTemplate).Funcs(funcMap).ParseFS(fs, pattern...)
 	if err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}
@@ -49,6 +61,13 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data any) {
 		"currentUser": func() *models.User {
 			return context.User(r.Context())
 		},
+		"notifications": func() []models.Notification {
+			notifications := context.Notifications(r.Context())
+			if notifications == nil {
+				return nil
+			}
+			return models.SortNotifications(notifications)
+		},
 	})
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -72,5 +91,8 @@ var funcMap = template.FuncMap{
 	},
 	"currentUser": func() (*models.User, error) {
 		return nil, fmt.Errorf("currentUser: called in template without a request")
+	},
+	"notifications": func() ([]models.Notification, error) {
+		return nil, fmt.Errorf("notifications: called in template without a request")
 	},
 }

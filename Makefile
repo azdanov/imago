@@ -32,8 +32,7 @@ run: ## Run the application
 	@go run $(MAIN_FILE)
 
 dev: ## Run the application with hot-reload using air
-	@command -v air >/dev/null 2>&1 || { echo "air is not installed. Installing..."; go install github.com/cosmtrek/air@latest; }
-	@air
+	@go tool air
 
 test: ## Run tests
 	@go test -v ./...

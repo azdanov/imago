@@ -53,36 +53,39 @@ func main() {
 	um := controllers.NewUserMiddleware(ss, sc)
 	r.Use(um.SetUser)
 
+	notificationMiddleware := controllers.NewNotificationMiddleware()
+	r.Use(notificationMiddleware.ExtractNotifications)
+
 	// Setup routes
-	tmpl := views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "home.tmpl.html"))
+	tmpl := views.Must(views.Parse(templates.FS, "home.tmpl.html"))
 	r.Get("/", controllers.StaticHandler(tmpl))
 
-	tmpl = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "contact.tmpl.html"))
+	tmpl = views.Must(views.Parse(templates.FS, "contact.tmpl.html"))
 	r.Get("/contact", controllers.StaticHandler(tmpl))
 
-	tmpl = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "faq.tmpl.html"))
+	tmpl = views.Must(views.Parse(templates.FS, "faq.tmpl.html"))
 	r.Get("/faq", controllers.FAQ(tmpl))
 
 	usersC := controllers.NewUsers(us, ss, sc, ps, es, &config)
 
-	usersC.Templates.SignUp = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signup.tmpl.html"))
+	usersC.Templates.SignUp = views.Must(views.Parse(templates.FS, "signup.tmpl.html"))
 	r.Get("/signup", usersC.NewSignup)
 	r.Post("/signup", usersC.HandleSignup)
 
-	usersC.Templates.SignIn = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "signin.tmpl.html"))
+	usersC.Templates.SignIn = views.Must(views.Parse(templates.FS, "signin.tmpl.html"))
 	r.Get("/signin", usersC.NewSignin)
 	r.Post("/signin", usersC.HandleSignin)
 	r.Post("/signout", usersC.HandleSignout)
 
-	usersC.Templates.ForgotPassword = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "forgot_password.tmpl.html"))
+	usersC.Templates.ForgotPassword = views.Must(views.Parse(templates.FS, "forgot_password.tmpl.html"))
 	r.Get("/forgot-password", usersC.NewForgotPassword)
 	r.Post("/forgot-password", usersC.HandleForgotPassword)
 
-	usersC.Templates.ResetPassword = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "reset_password.tmpl.html"))
+	usersC.Templates.ResetPassword = views.Must(views.Parse(templates.FS, "reset_password.tmpl.html"))
 	r.Get("/reset-password", usersC.NewResetPassword)
 	r.Post("/reset-password", usersC.HandleResetPassword)
 
-	tmpl = views.Must(views.Parse(templates.FS, "layouts/base.tmpl.html", "me.tmpl.html"))
+	tmpl = views.Must(views.Parse(templates.FS, "me.tmpl.html"))
 	r.Route("/users/me", func(r chi.Router) {
 		r.Use(um.RequireUser)
 		r.Get("/", controllers.StaticHandler(tmpl))

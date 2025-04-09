@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -59,52 +58,64 @@ func NewUserMiddleware(ss *models.SessionService, sc *SessionCookie) *UserMiddle
 }
 
 func (u Users) NewSignup(w http.ResponseWriter, r *http.Request) {
-	email := r.URL.Query().Get("email")
-	errorMessage := r.URL.Query().Get("error")
 	data := struct {
 		Email string
-		Error string
 	}{
-		Email: email,
-		Error: errorMessage,
+		Email: r.URL.Query().Get("email"),
 	}
+
 	u.Templates.SignUp.Execute(w, r, data)
 }
 
 func (u Users) HandleSignup(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Printf("parse form: %v", err)
-		http.Redirect(w, r, fmt.Sprintf("/signup?error=%s", url.QueryEscape("Something went wrong")), http.StatusSeeOther)
+		vals := url.Values{
+			"error": {"Something went wrong"},
+		}
+		http.Redirect(w, r, "/signup?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
 	email := r.PostForm.Get("email")
 	password := r.PostForm.Get("password")
 
+	vals := url.Values{
+		"email": {email},
+	}
+
 	if email == "" {
-		http.Redirect(w, r, "/signup", http.StatusSeeOther)
+		vals.Set("error", "Email is required")
+		http.Redirect(w, r, "/signup?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 	if password == "" {
-		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s&error=%s", email, "Password is required"), http.StatusSeeOther)
+		vals.Set("error", "Password is required")
+		http.Redirect(w, r, "/signup?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 	if len(password) < 8 {
-		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s&error=%s", email, "Password must be at least 8 characters long"), http.StatusSeeOther)
+		vals.Set("error", "Password must be at least 8 characters long")
+		http.Redirect(w, r, "/signup?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
 	user, err := u.UserService.Create(email, password)
 	if err != nil {
 		log.Printf("create user: %v", err)
-		http.Redirect(w, r, fmt.Sprintf("/signup?email=%s&error=%s", email, "Error creating user"), http.StatusSeeOther)
+		vals.Set("error", "Error creating user")
+		http.Redirect(w, r, "/signup?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
 	session, err := u.SessionService.Create(user.ID)
 	if err != nil {
 		log.Printf("create session: %v", err)
-		http.Redirect(w, r, fmt.Sprintf("/signin?email=%s&error=%s", email, "Error creating session"), http.StatusSeeOther)
+		vals := url.Values{
+			"email": {email},
+			"error": {"Error creating session"},
+		}
+		http.Redirect(w, r, "/signin?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
@@ -113,14 +124,10 @@ func (u Users) HandleSignup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u Users) NewSignin(w http.ResponseWriter, r *http.Request) {
-	email := r.URL.Query().Get("email")
-	errorMessage := r.URL.Query().Get("error")
 	data := struct {
 		Email string
-		Error string
 	}{
-		Email: email,
-		Error: errorMessage,
+		Email: r.URL.Query().Get("email"),
 	}
 	u.Templates.SignIn.Execute(w, r, data)
 }
@@ -128,33 +135,44 @@ func (u Users) NewSignin(w http.ResponseWriter, r *http.Request) {
 func (u Users) HandleSignin(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Printf("parse form: %v", err)
-		http.Redirect(w, r, fmt.Sprintf("/signin?error=%s", "Something went wrong"), http.StatusSeeOther)
+		vals := url.Values{
+			"error": {"Something went wrong"},
+		}
+		http.Redirect(w, r, "/signin?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
 	email := r.PostForm.Get("email")
 	password := r.PostForm.Get("password")
 
+	vals := url.Values{
+		"email": {email},
+	}
+
 	if email == "" {
-		http.Redirect(w, r, "/signin?error=Email is required", http.StatusSeeOther)
+		vals.Set("error", "Email is required")
+		http.Redirect(w, r, "/signin?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 	if password == "" {
-		http.Redirect(w, r, fmt.Sprintf("/signin?email=%s&error=%s", email, "Password is required"), http.StatusSeeOther)
+		vals.Set("error", "Password is required")
+		http.Redirect(w, r, "/signin?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
 	user, err := u.UserService.Authenticate(email, password)
 	if err != nil {
 		log.Printf("authenticate user: %v", err)
-		http.Redirect(w, r, fmt.Sprintf("/signin?email=%s&error=%s", email, "Invalid email or password"), http.StatusSeeOther)
+		vals.Set("error", "Invalid email or password")
+		http.Redirect(w, r, "/signin?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
 	session, err := u.SessionService.Create(user.ID)
 	if err != nil {
 		log.Printf("create session: %v", err)
-		http.Redirect(w, r, fmt.Sprintf("/signin?email=%s&error=%s", email, "Error creating session"), http.StatusSeeOther)
+		vals.Set("error", "Error creating session")
+		http.Redirect(w, r, "/signin?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
@@ -172,7 +190,10 @@ func (u Users) HandleSignout(w http.ResponseWriter, r *http.Request) {
 
 	if err := u.SessionService.Delete(token); err != nil {
 		log.Printf("delete session: %v", err)
-		http.Redirect(w, r, "/signin", http.StatusSeeOther)
+		vals := url.Values{
+			"error": {"Error signing out"},
+		}
+		http.Redirect(w, r, "/signin?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
@@ -182,97 +203,83 @@ func (u Users) HandleSignout(w http.ResponseWriter, r *http.Request) {
 
 func (u Users) NewForgotPassword(w http.ResponseWriter, r *http.Request) {
 	data := struct {
-		Email   string
-		Error   string
-		Success string
+		Email string
 	}{
-		Email:   r.FormValue("email"),
-		Error:   r.URL.Query().Get("error"),
-		Success: r.URL.Query().Get("success"),
+		Email: r.FormValue("email"),
 	}
 
 	u.Templates.ForgotPassword.Execute(w, r, data)
 }
 
 func (u Users) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
-	var data struct {
-		Email string
+	email := r.FormValue("email")
+
+	vals := url.Values{
+		"email": {email},
 	}
-	data.Email = r.FormValue("email")
 
-	var vals url.Values
-
-	passwordReset, err := u.PasswordResetService.Generate(data.Email)
+	passwordReset, err := u.PasswordResetService.Generate(email)
 	if err != nil {
 		log.Printf("generate password reset: %v", err)
-		vals = url.Values{
-			"email": {data.Email},
-			"error": {"Something went wrong"},
-		}
+		vals.Set("error", "Something went wrong")
 		http.Redirect(w, r, "/forgot-password?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
-	vals = url.Values{
+	resetVals := url.Values{
 		"token": {passwordReset.Token},
 	}
-	resetURL := u.serverURL + "?" + vals.Encode()
+	resetURL := u.serverURL + "?" + resetVals.Encode()
 
-	err = u.EmailService.SendResetPassword(data.Email, resetURL)
+	err = u.EmailService.SendResetPassword(email, resetURL)
 	if err != nil {
 		log.Printf("send email: %v", err)
-		vals = url.Values{
-			"email": {data.Email},
-			"error": {"Something went wrong"},
-		}
+		vals.Set("error", "Something went wrong")
 		http.Redirect(w, r, "/forgot-password?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
 
-	vals = url.Values{
-		"email":   {data.Email},
-		"success": {"true"},
-	}
-
+	vals.Set("success", "An email has been sent with instructions to reset your password")
 	http.Redirect(w, r, "/forgot-password?"+vals.Encode(), http.StatusSeeOther)
 }
 
 func (u Users) NewResetPassword(w http.ResponseWriter, r *http.Request) {
-	var data struct {
+	data := struct {
 		Token string
-		Error string
+	}{
+		Token: r.FormValue("token"),
 	}
-	data.Token = r.FormValue("token")
-	data.Error = r.URL.Query().Get("error")
 
 	u.Templates.ResetPassword.Execute(w, r, data)
 }
 
 func (u Users) HandleResetPassword(w http.ResponseWriter, r *http.Request) {
-	var data struct {
-		Token    string
-		Password string
-	}
-	data.Token = r.FormValue("token")
-	data.Password = r.FormValue("password")
-
-	user, err := u.PasswordResetService.GetUserByToken(data.Token)
-	if err != nil {
-		log.Printf("get user by token: %v", err)
+	if err := r.ParseForm(); err != nil {
+		log.Printf("parse form: %v", err)
 		vals := url.Values{
-			"error": {"Invalid or expired token"},
-			"token": {data.Token},
+			"error": {"Something went wrong"},
 		}
 		http.Redirect(w, r, "/reset-password?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
+	token := r.PostForm.Get("token")
+	password := r.PostForm.Get("password")
 
-	if err = u.UserService.UpdatePassword(user.ID, data.Password); err != nil {
+	vals := url.Values{
+		"token": {token},
+	}
+
+	user, err := u.PasswordResetService.GetUserByToken(token)
+	if err != nil {
+		log.Printf("get user by token: %v", err)
+		vals.Set("error", "Invalid or expired token")
+		http.Redirect(w, r, "/reset-password?"+vals.Encode(), http.StatusSeeOther)
+		return
+	}
+
+	if err = u.UserService.UpdatePassword(user.ID, password); err != nil {
 		log.Printf("update password: %v", err)
-		vals := url.Values{
-			"error": {"Internal server error"},
-			"token": {data.Token},
-		}
+		vals.Set("error", "Internal server error")
 		http.Redirect(w, r, "/reset-password?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}

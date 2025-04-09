@@ -63,6 +63,12 @@
       </header>
 
       <main class="container mx-auto p-8 bg-white dark:bg-gray-800 grow">
+        <div class="flex flex-col items-center">
+          <div class="inline-block min-w-96 max-w-2xl">
+            {{ template "notification" notifications }}
+          </div>
+        </div>
+
         {{ template "main" . }}
       </main>
 
