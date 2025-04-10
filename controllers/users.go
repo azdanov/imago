@@ -103,7 +103,11 @@ func (u Users) HandleSignup(w http.ResponseWriter, r *http.Request) {
 	user, err := u.UserService.Create(email, password)
 	if err != nil {
 		log.Printf("create user: %v", err)
-		vals.Set("error", "Error creating user")
+		if err == models.ErrEmailAlreadyExists {
+			vals.Set("error", "Email already exists")
+		} else {
+			vals.Set("error", "Error creating user")
+		}
 		http.Redirect(w, r, "/signup?"+vals.Encode(), http.StatusSeeOther)
 		return
 	}
