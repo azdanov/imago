@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -41,10 +42,13 @@ func NewPasswordResetService(db *sql.DB, bytesPerToken int, tokenLifetime time.D
 
 func (s *PasswordResetService) Generate(email string) (*PasswordReset, error) {
 	var userID int
-	query := s.DB.QueryRow(`SELECT id FROM users WHERE email = $1;`, email)
 
+	query := s.DB.QueryRow(`SELECT id FROM users WHERE email = $1;`, email)
 	err := query.Scan(&userID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("generate: %w", err)
 	}
 
@@ -56,11 +60,6 @@ func (s *PasswordResetService) Generate(email string) (*PasswordReset, error) {
 	token, err := rand.String(bytesPerToken)
 	if err != nil {
 		return nil, fmt.Errorf("generate: %w", err)
-	}
-
-	duration := s.TokenLifetime
-	if duration == 0 {
-		duration = DefaultTokenLifetime
 	}
 
 	resetToken := PasswordReset{
@@ -97,7 +96,10 @@ func (s *PasswordResetService) GetUserByToken(token string) (*User, error) {
 			WHERE rt.token_hash = $1;`, tokenHash)
 
 	err := query.Scan(&passwordReset.ID, &passwordReset.CreatedAt, &user.ID, &user.Email, &user.PasswordHash)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("get user: %w", err)
 	}
 
@@ -113,14 +115,14 @@ func (s *PasswordResetService) GetUserByToken(token string) (*User, error) {
 	return &user, nil
 }
 
-func (prs *PasswordResetService) hash(token string) string {
+func (s *PasswordResetService) hash(token string) string {
 	tokenHash := sha256.Sum256([]byte(token))
 
 	return base64.URLEncoding.EncodeToString(tokenHash[:])
 }
 
-func (prs *PasswordResetService) delete(id int) error {
-	_, err := prs.DB.Exec(`DELETE FROM reset_tokens WHERE id = $1;`, id)
+func (s *PasswordResetService) delete(id int) error {
+	_, err := s.DB.Exec(`DELETE FROM reset_tokens WHERE id = $1;`, id)
 	if err != nil {
 		return fmt.Errorf("delete: %w", err)
 	}

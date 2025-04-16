@@ -2,6 +2,7 @@ package views
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -28,7 +29,7 @@ var baseTemplates = []string{
 
 func Parse(fs fs.FS, pattern ...string) (*Template, error) {
 	if len(pattern) == 0 {
-		return nil, fmt.Errorf("no template files provided")
+		return nil, errors.New("no template files provided")
 	}
 	pattern = append(pattern, baseTemplates...)
 
@@ -79,7 +80,12 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data any) {
 		http.Error(w, "There was an error processing your request", http.StatusInternalServerError)
 		return
 	}
-	io.Copy(w, &buf)
+	_, err = io.Copy(w, &buf)
+	if err != nil {
+		log.Printf("copy template: %v", err)
+		http.Error(w, "There was an error processing your request", http.StatusInternalServerError)
+		return
+	}
 }
 
 var funcMap = template.FuncMap{
@@ -87,12 +93,12 @@ var funcMap = template.FuncMap{
 		return time.Now().Year()
 	},
 	"csrfField": func() (template.HTML, error) {
-		return template.HTML(""), fmt.Errorf("csrfField: called in template without a request")
+		return template.HTML(""), errors.New("csrfField: called in template without a request")
 	},
 	"currentUser": func() (*models.User, error) {
-		return nil, fmt.Errorf("currentUser: called in template without a request")
+		return nil, errors.New("currentUser: called in template without a request")
 	},
 	"notifications": func() ([]models.Notification, error) {
-		return nil, fmt.Errorf("notifications: called in template without a request")
+		return nil, errors.New("notifications: called in template without a request")
 	},
 }

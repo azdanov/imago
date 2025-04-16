@@ -10,10 +10,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrEmailAlreadyExists = errors.New("models: email already exists")
-
 type User struct {
-	ID           uint   `json:"id"`
+	ID           int    `json:"id"`
 	Email        string `json:"email"`
 	PasswordHash string `json:"-"`
 }
@@ -60,6 +58,9 @@ func (us *UserService) Authenticate(email, password string) (*User, error) {
 	query := `SELECT id, password_hash FROM users WHERE email = $1`
 	err := us.DB.QueryRow(query, email).Scan(&u.ID, &u.PasswordHash)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("authenticate: %w", err)
 	}
 
@@ -71,7 +72,7 @@ func (us *UserService) Authenticate(email, password string) (*User, error) {
 	return &u, nil
 }
 
-func (us *UserService) UpdatePassword(userID uint, password string) error {
+func (us *UserService) UpdatePassword(userID int, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("update password: %w", err)

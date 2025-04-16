@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/azdanov/imago/rand"
@@ -12,8 +13,8 @@ import (
 const MinSessionTokenBytes = 32
 
 type Session struct {
-	ID     uint `json:"id"`
-	UserID uint `json:"user_id"`
+	ID     int `json:"id"`
+	UserID int `json:"user_id"`
 	// Token is the actual token that will be sent to the client.
 	// Only created once and never stored in the database.
 	Token     string `json:"token"`
@@ -34,7 +35,7 @@ func NewSessionService(db *sql.DB, minSessionTokenBytes int) *SessionService {
 	}
 }
 
-func (s *SessionService) Create(userID uint) (*Session, error) {
+func (s *SessionService) Create(userID int) (*Session, error) {
 	bytesPerToken := max(s.SessionTokenBytes, MinSessionTokenBytes)
 	token, err := rand.String(bytesPerToken)
 	if err != nil {
@@ -72,6 +73,9 @@ func (s *SessionService) User(token string) (*User, error) {
       WHERE s.token_hash = $1
     `, tokenHash).Scan(&user.ID, &user.Email, &user.PasswordHash)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("user: %w", err)
 	}
 

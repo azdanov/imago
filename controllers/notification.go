@@ -15,8 +15,7 @@ const (
 	InfoNotification    NotificationType = "info"
 )
 
-// NotificationMiddleware extracts notification parameters from URL query
-// and adds them to the request context
+// NotificationMiddleware extracts notification parameters from URL query and adds them to the request context.
 type NotificationMiddleware struct{}
 
 func NewNotificationMiddleware() *NotificationMiddleware {

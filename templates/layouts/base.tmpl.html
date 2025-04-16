@@ -37,13 +37,16 @@
           </div>
           <div class="flex flex-1 items-center justify-end space-x-6">
             {{ if currentUser }}
+              <a href="/galleries" class="text-sm/6 font-semibold text-white"
+                >Galleries</a
+              >
               <form action="/signout" method="post">
                 <div class="hidden">
                   {{ csrfField }}
                 </div>
                 <button
                   type="submit"
-                  class="text-sm/6 font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-1 px-3 drop-shadow rounded cursor-pointer"
+                  class="text-sm/6 font-semibold text-white bg-indigo-600 hover:bg-indigo-700 py-1 px-3 drop-shadow rounded"
                 >
                   Sign out
                 </button>

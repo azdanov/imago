@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/azdanov/imago/config"
@@ -28,14 +29,14 @@ type EmailService struct {
 	client *mail.Client
 }
 
-func NewEmailService(config config.Config) (*EmailService, error) {
+func NewEmailService(cnf *config.Config) (*EmailService, error) {
 	options := []mail.Option{
-		mail.WithPort(config.SMTP.Port),
-		mail.WithUsername(config.SMTP.Username),
-		mail.WithPassword(config.SMTP.Password),
+		mail.WithPort(cnf.SMTP.Port),
+		mail.WithUsername(cnf.SMTP.Username),
+		mail.WithPassword(cnf.SMTP.Password),
 	}
 
-	if config.SMTP.SSLMode {
+	if cnf.SMTP.SSLMode {
 		options = append(options, mail.WithTLSPortPolicy(mail.TLSMandatory))
 		options = append(options, mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover))
 	} else {
@@ -43,7 +44,7 @@ func NewEmailService(config config.Config) (*EmailService, error) {
 		options = append(options, mail.WithSMTPAuth(mail.SMTPAuthPlain))
 	}
 
-	client, err := mail.NewClient(config.SMTP.Host, options...)
+	client, err := mail.NewClient(cnf.SMTP.Host, options...)
 	if err != nil {
 		return nil, fmt.Errorf("email: %w", err)
 	}
@@ -76,7 +77,7 @@ func (e *EmailService) Send(email Email) error {
 	case email.HTML != "":
 		message.SetBodyString(mail.TypeTextHTML, email.HTML)
 	default:
-		return fmt.Errorf("send: no body provided")
+		return errors.New("send: no body provided")
 	}
 
 	if err := e.client.DialAndSend(message); err != nil {
@@ -91,7 +92,8 @@ func (e *EmailService) SendResetPassword(to string, resetURL string) error {
 		To:        to,
 		Subject:   "Imago - Reset password",
 		Plaintext: fmt.Sprintf("Click the link to reset your password: %s", resetURL),
-		HTML:      fmt.Sprintf("<p>Click the link to reset your password: </p><a href=\"%s\">%s</a>", resetURL, resetURL),
+		HTML: fmt.Sprintf("<p>Click the link to reset your password: </p><a href=\"%s\">%s</a>",
+			resetURL, resetURL),
 	}
 
 	return e.Send(email)

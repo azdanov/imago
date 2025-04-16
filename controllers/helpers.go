@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-// RedirectWithNotification redirects to the given path with notification parameters
+// RedirectWithNotification redirects to the given path with notification parameters.
 func RedirectWithNotification(
 	w http.ResponseWriter,
 	r *http.Request,

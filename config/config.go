@@ -18,7 +18,7 @@ type DBConfig struct {
 	SSLMode  string
 }
 
-// Returns the PostgreSQL DSN (Data Source Name) for connecting to the database
+// GetDSN returns the PostgreSQL DSN (Data Source Name) for connecting to the database.
 func (c *DBConfig) GetDSN() string {
 	return "host=" + c.Host +
 		" port=" + strconv.Itoa(c.Port) +
@@ -48,7 +48,7 @@ type ServerConfig struct {
 	SSLMode bool
 }
 
-// Returns the address for the server, including protocol based on SSL mode
+// GetAddr returns the address for the server, including protocol based on SSL mode.
 func (c *ServerConfig) GetAddr() string {
 	return c.Host + ":" + strconv.Itoa(c.Port)
 }
@@ -61,11 +61,15 @@ func (c *ServerConfig) GetURL() string {
 	return "http://" + addr
 }
 
-func NewEnvConfig() Config {
-	return Config{
+func NewEnvConfig() *Config {
+	const dbPort = 5432
+	const smtpPort = 587
+	const serverPort = 8080
+
+	return &Config{
 		DB: DBConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getIntEnv("DB_PORT", 5432),
+			Port:     getIntEnv("DB_PORT", dbPort),
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", "postgres"),
 			Database: getEnv("DB_NAME", "postgres"),
@@ -73,7 +77,7 @@ func NewEnvConfig() Config {
 		},
 		SMTP: SMTPConfig{
 			Host:     getEnv("SMTP_HOST", "localhost"),
-			Port:     getIntEnv("SMTP_PORT", 587),
+			Port:     getIntEnv("SMTP_PORT", smtpPort),
 			Username: getEnv("SMTP_USERNAME", "user"),
 			Password: getEnv("SMTP_PASSWORD", "password"),
 			SSLMode:  getBoolEnv("SMTP_SSLMODE", false),
@@ -84,7 +88,7 @@ func NewEnvConfig() Config {
 		},
 		Server: ServerConfig{
 			Host:    getEnv("SERVER_HOST", "localhost"),
-			Port:    getIntEnv("SERVER_PORT", 8080),
+			Port:    getIntEnv("SERVER_PORT", serverPort),
 			Env:     GetEnvironment("SERVER_ENV", Dev),
 			SSLMode: getBoolEnv("SERVER_SSLMODE", false),
 		},

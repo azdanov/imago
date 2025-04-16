@@ -7,7 +7,12 @@ type Notification struct {
 	Message string
 }
 
-// SortNotifications sorts notifications by priority: success > error > others
+const (
+	NotificationSuccess = "success"
+	NotificationError   = "error"
+)
+
+// SortNotifications sorts notifications by priority: success > error > others.
 func SortNotifications(nl []Notification) []Notification {
 	if nl == nil {
 		return nil
@@ -17,13 +22,17 @@ func SortNotifications(nl []Notification) []Notification {
 	copy(sortedNotifications, nl)
 
 	sort.SliceStable(sortedNotifications, func(i, j int) bool {
-		if sortedNotifications[i].Type == "success" && sortedNotifications[j].Type != "success" {
+		if sortedNotifications[i].Type == NotificationSuccess &&
+			sortedNotifications[j].Type != NotificationSuccess {
 			return true
 		}
-		if sortedNotifications[i].Type != "success" && sortedNotifications[j].Type == "success" {
+		if sortedNotifications[i].Type != NotificationSuccess &&
+			sortedNotifications[j].Type == NotificationSuccess {
 			return false
 		}
-		if sortedNotifications[i].Type == "error" && sortedNotifications[j].Type != "error" && sortedNotifications[j].Type != "success" {
+		if sortedNotifications[i].Type == NotificationError &&
+			sortedNotifications[j].Type != NotificationError &&
+			sortedNotifications[j].Type != NotificationSuccess {
 			return true
 		}
 		return false

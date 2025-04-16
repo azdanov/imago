@@ -1,14 +1,14 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE users (
+CREATE TABLE galleries (
 	id SERIAL PRIMARY KEY,
-	email TEXT NOT NULL UNIQUE,
-	password_hash TEXT NOT NULL,
+	user_id INTEGER UNIQUE REFERENCES users (id) ON DELETE CASCADE,
+	title TEXT,
 	created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE users;
+DROP TABLE galleries;
 -- +goose StatementEnd

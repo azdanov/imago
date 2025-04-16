@@ -1,8 +1,11 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/azdanov/imago/config"
 	"github.com/azdanov/imago/controllers"
@@ -16,47 +19,110 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+const (
+	readTimeout  = 15 * time.Second
+	writeTimeout = 15 * time.Second
+	idleTimeout  = 60 * time.Second
+)
+
 func main() {
 	// Load environment variables
-	config := config.NewEnvConfig()
+	cnf := config.NewEnvConfig()
 
 	// Setup database
-	db, err := database.NewDB(config)
+	db, err := setupDatabase(cnf)
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v", err)
-	}
-	defer db.Close()
-
-	err = database.Migrate(db, database.FS, database.MigrationsDir)
-	if err != nil {
-		log.Fatalf("Unable to migrate database: %v", err)
+		log.Fatalf("Unable to setup database: %v", err)
 	}
 
 	// Setup services
+	services := setupServices(db, cnf)
+
+	// Setup router and routes
+	r := setupRouter(cnf, services)
+
+	// Start server
+	log.Printf("Starting server on %s\n", cnf.Server.GetURL())
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         cnf.Server.GetAddr(),
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
+		IdleTimeout:  idleTimeout,
+	}
+	if err = srv.ListenAndServe(); err != nil {
+		log.Fatalf("Unable to start server: %v", err)
+	}
+}
+
+func setupDatabase(cnf *config.Config) (*sql.DB, error) {
+	db, err := database.NewDB(cnf)
+	if err != nil {
+		return nil, fmt.Errorf("unable to connect to database: %w", err)
+	}
+
+	err = database.Migrate(db, database.FS, database.MigrationsDir)
+	if err != nil {
+		return nil, fmt.Errorf("unable to migrate database: %w", err)
+	}
+
+	return db, nil
+}
+
+type services struct {
+	sessionService       *models.SessionService
+	userService          *models.UserService
+	sessionCookie        *controllers.SessionCookie
+	passwordResetService *models.PasswordResetService
+	emailService         *models.EmailService
+	galleryService       *models.GalleryService
+}
+
+func setupServices(db *sql.DB, cnf *config.Config) *services {
 	ss := models.NewSessionService(db, models.MinSessionTokenBytes)
 	us := models.NewUserService(db)
-	sc := controllers.NewSessionCookie(config.Server.SSLMode)
+	sc := controllers.NewSessionCookie(cnf.Server.SSLMode)
 	ps := models.NewPasswordResetService(db, models.MinSessionTokenBytes, models.DefaultTokenLifetime)
-	es, err := models.NewEmailService(config)
+	es, err := models.NewEmailService(cnf)
 	if err != nil {
 		log.Fatalf("Unable to create email service: %v", err)
 	}
+	gs := models.NewGalleryService(db)
 
-	// Setup router
+	return &services{
+		sessionService:       ss,
+		userService:          us,
+		sessionCookie:        sc,
+		passwordResetService: ps,
+		emailService:         es,
+		galleryService:       gs,
+	}
+}
+
+func setupRouter(cnf *config.Config, s *services) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(csrf.Protect([]byte(config.CSRF.Key), csrf.Secure(config.CSRF.Secure)))
+	r.Use(csrf.Protect([]byte(cnf.CSRF.Key),
+		csrf.Secure(cnf.CSRF.Secure),
+		csrf.TrustedOrigins([]string{cnf.Server.GetAddr()}),
+	))
 
-	um := controllers.NewUserMiddleware(ss, sc)
+	um := controllers.NewUserMiddleware(s.sessionService, s.sessionCookie)
 	r.Use(um.SetUser)
 
 	notificationMiddleware := controllers.NewNotificationMiddleware()
 	r.Use(notificationMiddleware.ExtractNotifications)
 
-	// Setup routes
+	setupRoutes(r, s, um, cnf)
+
+	return r
+}
+
+func setupRoutes(r *chi.Mux, s *services, um *controllers.UserMiddleware, cnf *config.Config) {
+	// Static routes
 	tmpl := views.Must(views.Parse(templates.FS, "home.tmpl.html"))
 	r.Get("/", controllers.StaticHandler(tmpl))
 
@@ -66,7 +132,9 @@ func main() {
 	tmpl = views.Must(views.Parse(templates.FS, "faq.tmpl.html"))
 	r.Get("/faq", controllers.FAQ(tmpl))
 
-	usersC := controllers.NewUsers(us, ss, sc, ps, es, &config)
+	// User routes
+	usersC := controllers.NewUsers(
+		s.userService, s.sessionService, s.sessionCookie, s.passwordResetService, s.emailService, cnf)
 
 	usersC.Templates.SignUp = views.Must(views.Parse(templates.FS, "signup.tmpl.html"))
 	r.Get("/signup", usersC.NewSignup)
@@ -91,7 +159,29 @@ func main() {
 		r.Get("/", controllers.StaticHandler(tmpl))
 	})
 
-	// Start server
-	log.Printf("Starting server on %s\n", config.Server.GetURL())
-	http.ListenAndServe(config.Server.GetAddr(), r)
+	// Gallery routes
+	galleriesC := controllers.NewGalleries(s.galleryService)
+	galleriesC.Templates.New = views.Must(views.Parse(templates.FS, "galleries/new.tmpl.html"))
+	galleriesC.Templates.Edit = views.Must(views.Parse(templates.FS, "galleries/edit.tmpl.html"))
+	galleriesC.Templates.Show = views.Must(views.Parse(templates.FS, "galleries/show.tmpl.html"))
+	galleriesC.Templates.List = views.Must(views.Parse(templates.FS, "galleries/list.tmpl.html"))
+	r.Route("/galleries", func(r chi.Router) {
+		r.Get("/{id}", galleriesC.Show)
+		r.Get("/{id}/images/{filename}", galleriesC.Image)
+		r.Group(func(r chi.Router) {
+			r.Use(um.RequireUser)
+			r.Get("/", galleriesC.List)
+			r.Get("/new", galleriesC.New)
+			r.Post("/", galleriesC.Create)
+			r.Get("/{id}/edit", galleriesC.Edit)
+			r.Post("/{id}", galleriesC.Update)
+			r.Post("/{id}/delete", galleriesC.Delete)
+			r.Post("/{id}/images", galleriesC.UploadImage)
+			r.Post("/{id}/images/{filename}/delete", galleriesC.DeleteImage)
+		})
+	})
+
+	// 404 handler
+	tmpl = views.Must(views.Parse(templates.FS, "404.tmpl.html"))
+	r.NotFound(controllers.StaticHandler(tmpl))
 }
